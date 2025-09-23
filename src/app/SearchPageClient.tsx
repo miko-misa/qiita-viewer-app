@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import SearchIcon from "@mui/icons-material/Search";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useRecoilState } from "recoil";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   SearchButton,
@@ -51,8 +52,12 @@ function buildSummary(body: string | undefined) {
 }
 
 export function SearchPageClient() {
-  const [keywordInput, setKeywordInput] = useState("");
-  const [activeKeyword, setActiveKeyword] = useState("");
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const initialQuery = searchParams.get("q") ?? "";
+  const [keywordInput, setKeywordInput] = useState(initialQuery);
+  const [activeKeyword, setActiveKeyword] = useState(initialQuery);
   const [settings, setSettings] = useRecoilState(qiitaSettingsState);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [draftApiKey, setDraftApiKey] = useState(settings.apiKey);
@@ -64,6 +69,12 @@ export function SearchPageClient() {
 
   const hasApiKey = settings.apiKey.trim().length > 0;
   const perPage = qiitaApiConstants.DEFAULT_PER_PAGE;
+
+  useEffect(() => {
+    const queryParam = searchParams.get("q") ?? "";
+    setKeywordInput((prev) => (prev === queryParam ? prev : queryParam));
+    setActiveKeyword((prev) => (prev === queryParam ? prev : queryParam));
+  }, [searchParams]);
 
   const {
     data,
@@ -131,6 +142,9 @@ export function SearchPageClient() {
     }
 
     setActiveKeyword(trimmed);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("q", trimmed);
+    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
   };
 
   const handleOpenSettings = () => {
@@ -183,6 +197,10 @@ export function SearchPageClient() {
         <SearchResultList
           items={searchResults}
           emptyMessage="条件に合う記事が見つかりませんでした"
+          onSelect={(item) => {
+            const articlePath = `/${encodeURIComponent(item.id)}`;
+            window.open(articlePath, "_blank", "noopener,noreferrer");
+          }}
         />
         {hasNextPage ? (
           <Box display="flex" justifyContent="center">
