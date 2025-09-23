@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
-    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings=0 --fix"
+    "lint:fix": "eslint . --ext .ts,.tsx --max-warnings=0 --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "react": "19.1.0",
@@ -21,6 +23,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
     "@eslint/eslintrc": "^3"
   }
 }
