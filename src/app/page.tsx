@@ -200,7 +200,7 @@ export default function Home() {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -219,31 +219,32 @@ export default function Home() {
             height: "100%",
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
+            alignItems: "stretch",
             gap: { xs: 3, md: 4 },
             overflow: "hidden",
+            flex: 1,
           }}
         >
-      <Stack
-        spacing={{ xs: 3, md: 4 }}
-        alignItems="center"
-        width="100%"
-        sx={{ flex: 1, overflow: "hidden" }}
-      >
-        <Stack
-          component="form"
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          alignItems={{ xs: "stretch", sm: "flex-start" }}
-          justifyContent="center"
-          sx={{ width: "100%", maxWidth: 720, mx: "auto" }}
-          onSubmit={handleSubmit}
-        >
+          <Stack
+            spacing={{ xs: 3, md: 4 }}
+            alignItems="stretch"
+            width="100%"
+            sx={{ flex: 1, minHeight: 0, overflow: "hidden", paddingTop: 1 }}
+          >
+            <Stack
+              component="form"
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              alignItems={{ xs: "stretch", sm: "flex-start" }}
+              justifyContent="center"
+              sx={{ width: "100%", maxWidth: 720, mx: "auto", flexShrink: 0 }}
+              onSubmit={handleSubmit}
+            >
           <SearchInput
             value={keywordInput}
             onChange={(event) => setKeywordInput(event.target.value)}
             helperText={hasApiKey ? undefined : "APIキーを設定すると検索できます"}
-            sx={{ flexGrow: 1 }}
+            sx={{ flexGrow: 1, m: 0.5 }}
           />
           <Tooltip
             title={!hasApiKey ? "APIキーを設定してください" : !hasKeyword ? "キーワードを入力してください" : "検索"}
@@ -269,20 +270,20 @@ export default function Home() {
               />
             </Box>
           </Tooltip>
-        </Stack>
+            </Stack>
 
-        <Stack
-          spacing={2}
-          sx={{
-            width: "100%",
-            maxWidth: { xs: "100%", md: 960, lg: 1100 },
-            mx: "auto",
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 0,
-          }}
-        >
+            <Stack
+              spacing={2}
+              sx={{
+                width: "100%",
+                maxWidth: { xs: "100%", md: 960, lg: 1100 },
+                mx: "auto",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0,
+              }}
+            >
           <Typography variant="h6" component="h2">
             検索結果
           </Typography>
@@ -303,8 +304,8 @@ export default function Home() {
               {resultsContent}
             </Box>
           </Box>
-        </Stack>
-      </Stack>
+            </Stack>
+          </Stack>
         </Container>
       </Box>
 

@@ -4,12 +4,16 @@ import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import { Box, List, ListItem, ListItemButton, Stack, Typography } from "@mui/material";
 
 import { SearchTagList } from "./SearchTagList";
+import { formatAuthor } from "@/utils/format";
 
 export type SearchResultItem = {
   id: string;
   title: string;
   url: string;
-  author: string;
+  author: {
+    id?: string;
+    name?: string;
+  };
   likesCount: number;
   tags: string[];
   createdAt: string;
@@ -82,23 +86,30 @@ export function SearchResultList({
                   <Typography
                     variant="h6"
                     component="h3"
-                    sx={{ flexGrow: 1, minWidth: 200 }}
+                    sx={{
+                      flexGrow: 1,
+                      minWidth: 200,
+                      wordBreak: "break-word",
+                      overflowWrap: "anywhere",
+                    }}
                   >
                     {item.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    投稿者: {item.author}
                   </Typography>
                   <Stack
                     direction="row"
                     alignItems="center"
-                    spacing={0.5}
+                    spacing={1}
                     sx={{ marginLeft: { xs: 0, sm: "auto" } }}
                   >
-                    <FavoriteBorderIcon fontSize="small" color="error" />
                     <Typography variant="body2" color="text.secondary">
-                      {item.likesCount}
+                      {formatAuthor(item.author)}
                     </Typography>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <FavoriteBorderIcon fontSize="small" color="error" />
+                      <Typography variant="body2" color="text.secondary">
+                        {item.likesCount}
+                      </Typography>
+                    </Stack>
                   </Stack>
                 </Box>
 

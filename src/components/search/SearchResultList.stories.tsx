@@ -10,7 +10,10 @@ const sampleItems: SearchResultItem[] = [
     id: "1",
     title: "Next.jsとMUIでQiita検索アプリを作る",
     url: "https://qiita.com/articles/1",
-    author: "qiita_user",
+    author: {
+      id: "qiita_user",
+      name: "Qiita User",
+    },
     likesCount: 42,
     tags: ["nextjs", "mui", "react"],
     createdAt: "2024-10-01T12:00:00+09:00",
@@ -21,7 +24,10 @@ const sampleItems: SearchResultItem[] = [
     id: "2",
     title: "React QueryでAPIレスポンスをキャッシュする",
     url: "https://qiita.com/articles/2",
-    author: "frontend_dev",
+    author: {
+      id: "frontend_dev",
+      name: "Front End Dev",
+    },
     likesCount: 18,
     tags: ["react-query", "api", "typescript"],
     createdAt: "2024-09-20T09:30:00+09:00",
