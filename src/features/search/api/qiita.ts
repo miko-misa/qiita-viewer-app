@@ -53,6 +53,25 @@ export async function fetchQiitaItems({
   return response.data;
 }
 
+export async function fetchQiitaItem({
+  id,
+  apiKey,
+}: {
+  id: string;
+  apiKey?: string;
+}) {
+  const response = await qiitaClient.get<QiitaItem>(`/items/${id}`, {
+    headers:
+      apiKey && apiKey.length > 0
+        ? {
+            Authorization: `Bearer ${apiKey}`,
+          }
+        : undefined,
+  });
+
+  return response.data;
+}
+
 export const qiitaApiConstants = {
   DEFAULT_PER_PAGE,
   MAX_PER_PAGE: 100,
