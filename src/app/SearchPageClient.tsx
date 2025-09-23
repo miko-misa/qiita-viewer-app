@@ -252,6 +252,7 @@ export function SearchPageClient() {
                 whiteSpace: "nowrap",
                 minWidth: { sm: 140 },
                 px: { sm: 3 },
+                height: 56,
               }}
             >
               詳細検索

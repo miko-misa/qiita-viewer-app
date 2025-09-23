@@ -121,26 +121,36 @@ export function SearchResultList({
                   </Stack>
                 </Box>
 
-                {item.summary ? (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      display: "-webkit-box",
-                      WebkitBoxOrient: "vertical",
-                      WebkitLineClamp: 2,
-                      overflow: "hidden",
-                    }}
-                  >
-                    {item.summary}
+                <Stack
+                  spacing={0.75}
+                  sx={(theme) => ({
+                    px: { xs: 0.5, sm: 1.5 },
+                    borderLeftStyle: "solid",
+                    borderLeftWidth: { xs: 3, sm: 4 },
+                    borderLeftColor: theme.palette.grey[400],
+                  })}
+                >
+                  {item.summary ? (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        display: "-webkit-box",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: 2,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {item.summary}
+                    </Typography>
+                  ) : null}
+
+                  <SearchTagList tags={item.tags} />
+
+                  <Typography variant="caption" color="text.secondary">
+                    公開日: {formatDate(item.createdAt)}
                   </Typography>
-                ) : null}
-
-                <SearchTagList tags={item.tags} />
-
-                <Typography variant="caption" color="text.secondary">
-                  公開日: {formatDate(item.createdAt)}
-                </Typography>
+                </Stack>
               </Stack>
             </ListItemButton>
           </ListItem>
