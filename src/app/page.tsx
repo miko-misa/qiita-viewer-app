@@ -112,6 +112,7 @@ export default function Home() {
           name: item.user?.name,
         },
         likesCount: item.likes_count,
+        stocksCount: item.stocks_count,
         tags: item.tags.map((tag) => tag.name),
         createdAt: item.created_at,
         summary: buildSummary(item.body),

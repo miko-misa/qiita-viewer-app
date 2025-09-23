@@ -1,6 +1,7 @@
 "use client";
 
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import { Box, List, ListItem, ListItemButton, Stack, Typography } from "@mui/material";
 
 import { SearchTagList } from "./SearchTagList";
@@ -15,6 +16,7 @@ export type SearchResultItem = {
     name?: string;
   };
   likesCount: number;
+  stocksCount: number;
   tags: string[];
   createdAt: string;
   summary?: string;
@@ -95,19 +97,25 @@ export function SearchResultList({
                   >
                     {item.title}
                   </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {formatAuthor(item.author)}
+                  </Typography>
                   <Stack
                     direction="row"
                     alignItems="center"
-                    spacing={1}
+                    spacing={1.5}
                     sx={{ marginLeft: { xs: 0, sm: "auto" } }}
                   >
-                    <Typography variant="body2" color="text.secondary">
-                      {formatAuthor(item.author)}
-                    </Typography>
                     <Stack direction="row" alignItems="center" spacing={0.5}>
                       <FavoriteBorderIcon fontSize="small" color="error" />
                       <Typography variant="body2" color="text.secondary">
                         {item.likesCount}
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <BookmarkBorderIcon fontSize="small" color="primary" />
+                      <Typography variant="body2" color="text.secondary">
+                        {item.stocksCount}
                       </Typography>
                     </Stack>
                   </Stack>

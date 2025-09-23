@@ -15,6 +15,7 @@ const sampleItems: SearchResultItem[] = [
       name: "Qiita User",
     },
     likesCount: 42,
+    stocksCount: 30,
     tags: ["nextjs", "mui", "react"],
     createdAt: "2024-10-01T12:00:00+09:00",
     summary:
@@ -29,6 +30,7 @@ const sampleItems: SearchResultItem[] = [
       name: "Front End Dev",
     },
     likesCount: 18,
+    stocksCount: 12,
     tags: ["react-query", "api", "typescript"],
     createdAt: "2024-09-20T09:30:00+09:00",
     summary:

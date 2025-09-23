@@ -9,6 +9,7 @@ export type QiitaItem = {
   title: string;
   url: string;
   likes_count: number;
+  stocks_count: number;
   tags: QiitaTag[];
   created_at: string;
   body: string;
