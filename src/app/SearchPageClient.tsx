@@ -209,7 +209,17 @@ export function SearchPageClient() {
   }
 
   return (
-    <>
+    <Box
+      display="flex"
+      flexDirection="column"
+      sx={{
+        height: "100vh",
+        overflow: "hidden",
+        "@supports (height: 100dvh)": {
+          height: "100dvh",
+        },
+      }}
+    >
       <AppHeader
         title="Qiita Viewer App"
         onClickSettings={handleOpenSettings}
@@ -219,14 +229,21 @@ export function SearchPageClient() {
         maxWidth="lg"
         sx={{
           py: { xs: 2, md: 4 },
-          minHeight: "100vh",
+          flex: 1,
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-start",
           alignItems: "center",
+          overflow: "hidden",
+          minHeight: 0,
+          width: "100%",
         }}
       >
-        <Stack spacing={{ xs: 3, md: 4 }} alignItems="center" width="100%">
+        <Stack
+          spacing={{ xs: 3, md: 4 }}
+          alignItems="center"
+          sx={{ width: "100%", flex: 1, minHeight: 0 }}
+        >
           <Stack
             component="form"
             direction={{ xs: "column", sm: "row" }}
@@ -293,6 +310,7 @@ export function SearchPageClient() {
               display: "flex",
               flexDirection: "column",
               minHeight: 0,
+              overflow: "hidden",
             }}
           >
             <Typography variant="h6" component="h2">
@@ -351,6 +369,6 @@ export function SearchPageClient() {
           </Button>
         </DialogActions>
       </Dialog>
-    </>
+    </Box>
   );
 }
