@@ -3,6 +3,7 @@
 import { type ReactNode, useMemo, useState } from "react";
 
 import SearchIcon from "@mui/icons-material/Search";
+import TuneIcon from "@mui/icons-material/Tune";
 import {
   Alert,
   Box,
@@ -34,6 +35,11 @@ import {
 } from "@/features/search/api/qiita";
 import { qiitaSettingsState } from "@/state/qiitaSettings";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { SearchDetailDialog } from "@/components/search/SearchDetailDialog";
+import {
+  defaultSearchDetailSettings,
+  type SearchDetailSettings,
+} from "@/features/search/detailSearch";
 
 function buildSummary(body: string | undefined) {
   if (!body) {
@@ -54,6 +60,10 @@ export default function Home() {
   const [settings, setSettings] = useRecoilState(qiitaSettingsState);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [draftApiKey, setDraftApiKey] = useState(settings.apiKey);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [detailSettings, setDetailSettings] = useState<SearchDetailSettings>(
+    defaultSearchDetailSettings,
+  );
   const queryClient = useQueryClient();
 
   const hasApiKey = settings.apiKey.trim().length > 0;
@@ -246,6 +256,21 @@ export default function Home() {
             helperText={hasApiKey ? undefined : "APIキーを設定すると検索できます"}
             sx={{ flexGrow: 1, m: 0.5 }}
           />
+              <Button
+                type="button"
+                variant="outlined"
+                startIcon={<TuneIcon />}
+                onClick={() => setIsDetailDialogOpen(true)}
+                sx={{
+                  alignSelf: { xs: "stretch", sm: "flex-start" },
+                  whiteSpace: "nowrap",
+                  minWidth: { sm: 140 },
+                  height: 56,
+                  px: { sm: 3 },
+                }}
+              >
+                詳細検索
+              </Button>
           <Tooltip
             title={!hasApiKey ? "APIキーを設定してください" : !hasKeyword ? "キーワードを入力してください" : "検索"}
           >
@@ -270,7 +295,7 @@ export default function Home() {
               />
             </Box>
           </Tooltip>
-            </Stack>
+        </Stack>
 
             <Stack
               spacing={2}
@@ -331,6 +356,16 @@ export default function Home() {
           </Button>
         </DialogActions>
       </Dialog>
+      <SearchDetailDialog
+        open={isDetailDialogOpen}
+        values={detailSettings}
+        onClose={() => setIsDetailDialogOpen(false)}
+        onSave={(next, query) => {
+          setDetailSettings(next);
+          setKeywordInput(query);
+          setIsDetailDialogOpen(false);
+        }}
+      />
     </Box>
   );
 }
