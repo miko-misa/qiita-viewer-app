@@ -89,13 +89,7 @@ function EditableStringList({
           </Typography>
         ) : null}
       </Stack>
-      <Stack
-        direction="row"
-        spacing={1}
-        flexWrap="wrap"
-        alignItems="center"
-        useFlexGap
-      >
+      <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" useFlexGap>
         <SearchTagList
           tags={items}
           onTagDelete={onRemove}
@@ -162,10 +156,7 @@ export function SearchDetailDialog({ open, values, onClose, onSave }: SearchDeta
     setActiveTagGroup(null);
   }, [open, values]);
 
-  const addKeyword = (
-    field: keyof SearchDetailSettings["keywords"],
-    value: string,
-  ) => {
+  const addKeyword = (field: keyof SearchDetailSettings["keywords"], value: string) => {
     const next = value.trim();
     if (!next || draft.keywords[field].includes(next)) {
       return false;
@@ -180,10 +171,7 @@ export function SearchDetailDialog({ open, values, onClose, onSave }: SearchDeta
     return true;
   };
 
-  const removeKeyword = (
-    field: keyof SearchDetailSettings["keywords"],
-    target: string,
-  ) => {
+  const removeKeyword = (field: keyof SearchDetailSettings["keywords"], target: string) => {
     setDraft((prev) => ({
       ...prev,
       keywords: {
@@ -201,7 +189,7 @@ export function SearchDetailDialog({ open, values, onClose, onSave }: SearchDeta
     setDraft((prev) => ({
       ...prev,
       tagGroups: prev.tagGroups.map((group, idx) =>
-        idx === groupIndex ? [...group, next] : group,
+        idx === groupIndex ? [...group, next] : group
       ),
     }));
     setTagInputs((prev) => {
@@ -219,7 +207,7 @@ export function SearchDetailDialog({ open, values, onClose, onSave }: SearchDeta
     setDraft((prev) => ({
       ...prev,
       tagGroups: prev.tagGroups.map((group, idx) =>
-        idx === groupIndex ? group.filter((item) => item !== target) : group,
+        idx === groupIndex ? group.filter((item) => item !== target) : group
       ),
     }));
   };
@@ -291,13 +279,12 @@ export function SearchDetailDialog({ open, values, onClose, onSave }: SearchDeta
     setActiveTagGroup(null);
   };
 
-  const handleDateRangeChange = (key: "createdAt" | "updatedAt") =>
-    (value: DateRangeValue) => {
-      setDraft((prev) => ({
-        ...prev,
-        [key]: value,
-      }));
-    };
+  const handleDateRangeChange = (key: "createdAt" | "updatedAt") => (value: DateRangeValue) => {
+    setDraft((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
 
   const sanitizedDraft = useMemo(() => {
     const nonEmptyTagGroups = draft.tagGroups.filter((group) => group.length > 0);
@@ -307,10 +294,7 @@ export function SearchDetailDialog({ open, values, onClose, onSave }: SearchDeta
     };
   }, [draft]);
 
-  const queryPreview = useMemo(
-    () => buildDetailQuery(sanitizedDraft),
-    [sanitizedDraft],
-  );
+  const queryPreview = useMemo(() => buildDetailQuery(sanitizedDraft), [sanitizedDraft]);
 
   const handleSave = () => {
     onSave(sanitizedDraft, queryPreview);
@@ -323,7 +307,6 @@ export function SearchDetailDialog({ open, values, onClose, onSave }: SearchDeta
       </DialogTitle>
       <DialogContent sx={{ pt: 2 }}>
         <Stack spacing={3}>
-
           <Divider textAlign="left">キーワードによる絞り込み</Divider>
 
           <EditableStringList
@@ -465,9 +448,7 @@ export function SearchDetailDialog({ open, values, onClose, onSave }: SearchDeta
             <TextField
               label="ユーザー"
               value={draft.user}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, user: event.target.value }))
-              }
+              onChange={(event) => setDraft((prev) => ({ ...prev, user: event.target.value }))}
               placeholder="ユーザー名"
               fullWidth
             />
@@ -496,9 +477,7 @@ export function SearchDetailDialog({ open, values, onClose, onSave }: SearchDeta
             />
           </Stack>
 
-          <Divider textAlign="left">
-            日付による絞り込み
-          </Divider>
+          <Divider textAlign="left">日付による絞り込み</Divider>
 
           <Stack spacing={2}>
             <SearchDateRangeField

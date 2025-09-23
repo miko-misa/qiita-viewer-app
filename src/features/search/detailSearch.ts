@@ -77,9 +77,7 @@ const buildGroupCNF = (group: string[]): CNF => {
 };
 
 const expressionsToCNF = (groups: string[][]): CNF => {
-  const groupCNFs = groups
-    .map(buildGroupCNF)
-    .filter((cnf) => cnf.length > 0);
+  const groupCNFs = groups.map(buildGroupCNF).filter((cnf) => cnf.length > 0);
 
   if (groupCNFs.length === 0) {
     return [];
@@ -93,9 +91,7 @@ const expressionsToCNF = (groups: string[][]): CNF => {
 };
 
 const cnfToClauses = (cnf: CNF): string[][] =>
-  cnf
-    .map((clause) => clause.filter(Boolean))
-    .filter((clause) => clause.length > 0);
+  cnf.map((clause) => clause.filter(Boolean)).filter((clause) => clause.length > 0);
 
 export const buildDetailQuery = (settings: SearchDetailSettings): string => {
   const clauses: string[] = [];
@@ -122,9 +118,7 @@ export const buildDetailQuery = (settings: SearchDetailSettings): string => {
     if (transformed.length === 0) {
       return;
     }
-    clauses.push(
-      transformed.length > 1 ? `(${transformed.join(" OR ")})` : transformed[0],
-    );
+    clauses.push(transformed.length > 1 ? `(${transformed.join(" OR ")})` : transformed[0]);
   });
 
   const tagCNF = expressionsToCNF(settings.tagGroups);
@@ -132,9 +126,7 @@ export const buildDetailQuery = (settings: SearchDetailSettings): string => {
   if (tagClauses.length > 0) {
     const seen = new Set<string>();
     tagClauses.forEach((clause) => {
-      const values = clause
-        .map((literal) => literal.replace(/^tag:/u, ""))
-        .filter(Boolean);
+      const values = clause.map((literal) => literal.replace(/^tag:/u, "")).filter(Boolean);
       if (values.length > 0) {
         const key = values.join(",");
         if (!seen.has(key)) {

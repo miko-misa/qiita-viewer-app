@@ -14,8 +14,8 @@ export type SearchDateRangeFieldProps = {
 };
 
 export function SearchDateRangeField({ label, value, onChange }: SearchDateRangeFieldProps) {
-  const handleChange = (key: keyof DateRangeValue) =>
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange =
+    (key: keyof DateRangeValue) => (event: React.ChangeEvent<HTMLInputElement>) => {
       onChange({ ...value, [key]: event.target.value });
     };
 

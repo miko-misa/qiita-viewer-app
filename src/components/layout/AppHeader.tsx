@@ -23,11 +23,7 @@ export function AppHeader({
         </Typography>
         {onClickSettings ? (
           <Tooltip title={settingsTooltip}>
-            <IconButton
-              color="inherit"
-              aria-label="設定"
-              onClick={onClickSettings}
-            >
+            <IconButton color="inherit" aria-label="設定" onClick={onClickSettings}>
               <SettingsIcon />
             </IconButton>
           </Tooltip>

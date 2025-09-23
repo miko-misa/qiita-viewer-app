@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
-import {
-  SearchResultList,
-  type SearchResultItem,
-} from "./SearchResultList";
+import { SearchResultList, type SearchResultItem } from "./SearchResultList";
 
 const sampleItems: SearchResultItem[] = [
   {

@@ -6,8 +6,12 @@ import { RecoilRoot } from "recoil";
 
 const reactAny = React as unknown as {
   __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: {
-    ReactCurrentDispatcher?: { current: { useSyncExternalStore?: typeof React.useSyncExternalStore } };
-    ReactCurrentOwner?: { currentDispatcher?: { useSyncExternalStore?: typeof React.useSyncExternalStore } };
+    ReactCurrentDispatcher?: {
+      current: { useSyncExternalStore?: typeof React.useSyncExternalStore };
+    };
+    ReactCurrentOwner?: {
+      currentDispatcher?: { useSyncExternalStore?: typeof React.useSyncExternalStore };
+    };
   };
 };
 

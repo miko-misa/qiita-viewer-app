@@ -31,7 +31,7 @@ export function SearchTagList({
         <Chip
           key={tag}
           size="small"
-          icon={disableDefaultIcon ? icon : icon ?? <NumbersIcon fontSize="small" />}
+          icon={disableDefaultIcon ? icon : (icon ?? <NumbersIcon fontSize="small" />)}
           label={tag}
           {...restChipProps}
           sx={{

@@ -28,11 +28,7 @@ import {
   SearchResultList,
   type SearchResultItem,
 } from "@/components/search";
-import {
-  fetchQiitaItems,
-  qiitaApiConstants,
-  type QiitaItem,
-} from "@/features/search/api/qiita";
+import { fetchQiitaItems, qiitaApiConstants, type QiitaItem } from "@/features/search/api/qiita";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { SearchDetailDialog } from "@/components/search/SearchDetailDialog";
 import {
@@ -62,7 +58,7 @@ export function SearchPageClient() {
   const [draftApiKey, setDraftApiKey] = useState(settings.apiKey);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [detailSettings, setDetailSettings] = useState<SearchDetailSettings>(
-    defaultSearchDetailSettings,
+    defaultSearchDetailSettings
   );
   const queryClient = useQueryClient();
 
@@ -116,7 +112,7 @@ export function SearchPageClient() {
         tags: item.tags.map((tag) => tag.name),
         createdAt: item.created_at,
         summary: buildSummary(item.body),
-      })),
+      }))
     );
   }, [data]);
 
@@ -275,7 +271,13 @@ export function SearchPageClient() {
               詳細検索
             </Button>
             <Tooltip
-              title={!hasApiKey ? "APIキーを設定してください" : !hasKeyword ? "キーワードを入力してください" : "検索"}
+              title={
+                !hasApiKey
+                  ? "APIキーを設定してください"
+                  : !hasKeyword
+                    ? "キーワードを入力してください"
+                    : "検索"
+              }
             >
               <Box
                 component="span"
@@ -351,7 +353,8 @@ export function SearchPageClient() {
         <DialogTitle>Qiita APIキー</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            APIキーを設定すると検索が可能になります。Qiita で発行した個人用アクセストークンを入力してください。
+            APIキーを設定すると検索が可能になります。Qiita
+            で発行した個人用アクセストークンを入力してください。
           </Typography>
           <TextField
             label="APIキー"
