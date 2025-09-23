@@ -1,82 +1,274 @@
 "use client";
 
+import { type ReactNode, useMemo, useState } from "react";
+
 import SearchIcon from "@mui/icons-material/Search";
-import { Container, Stack, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useRecoilState } from "recoil";
 
 import {
-  type SearchResultItem,
   SearchButton,
   SearchInput,
   SearchResultList,
+  type SearchResultItem,
 } from "@/components/search";
+import {
+  fetchQiitaItems,
+  qiitaApiConstants,
+  type QiitaItem,
+} from "@/features/search/api/qiita";
+import { qiitaSettingsState } from "@/state/qiitaSettings";
+import { AppHeader } from "@/components/layout/AppHeader";
 
-const dummyResults: SearchResultItem[] = [
-  {
-    id: "1",
-    title: "Next.jsとQiita APIで検索アプリを作る",
-    url: "https://qiita.com/articles/1",
-    author: "frontend_dev",
-    likesCount: 24,
-    tags: ["nextjs", "qiita", "api"],
-    createdAt: "2024-10-15T10:00:00+09:00",
-    summary:
-      "Qiita API v2を活用してNext.js App Routerで検索アプリを構築する手順をまとめました。",
-  },
-  {
-    id: "2",
-    title: "React QueryでQiita記事を快適に取得",
-    url: "https://qiita.com/articles/2",
-    author: "react_fan",
-    likesCount: 18,
-    tags: ["react-query", "typescript"],
-    createdAt: "2024-09-28T08:30:00+09:00",
-    summary:
-      "データ取得の状態管理にReact Queryを導入し、キャッシュとエラーハンドリングを最適化する方法を紹介します。",
-  },
-  {
-    id: "3",
-    title: "MUIで作る使いやすい検索フォーム",
-    url: "https://qiita.com/articles/3",
-    author: "mui_master",
-    likesCount: 12,
-    tags: ["mui", "ui", "design"],
-    createdAt: "2024-08-05T14:45:00+09:00",
-    summary:
-      "MUIコンポーネントを組み合わせて、アクセシブルでレスポンシブな検索フォームを構築するポイントを整理しました。",
-  },
-];
+function buildSummary(body: string | undefined) {
+  if (!body) {
+    return undefined;
+  }
+
+  const collapsed = body.replace(/\s+/g, " ").trim();
+  if (!collapsed) {
+    return undefined;
+  }
+
+  return collapsed.length > 140 ? `${collapsed.slice(0, 140)}…` : collapsed;
+}
 
 export default function Home() {
+  const [keywordInput, setKeywordInput] = useState("");
+  const [activeKeyword, setActiveKeyword] = useState("");
+  const [settings, setSettings] = useRecoilState(qiitaSettingsState);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [draftApiKey, setDraftApiKey] = useState(settings.apiKey);
+  const queryClient = useQueryClient();
+
+  const hasApiKey = settings.apiKey.trim().length > 0;
+  const perPage = qiitaApiConstants.DEFAULT_PER_PAGE;
+
+  const {
+    data,
+    isPending,
+    isError,
+    error,
+    isFetching,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery<QiitaItem[], Error>({
+    queryKey: ["qiitaItems", activeKeyword, settings.apiKey, perPage],
+    enabled: activeKeyword.length > 0 && hasApiKey,
+    queryFn: ({ pageParam = 1 }) => {
+      const pageNumber = typeof pageParam === "number" ? pageParam : 1;
+
+      return fetchQiitaItems({
+        keyword: activeKeyword,
+        apiKey: settings.apiKey,
+        page: pageNumber,
+        perPage,
+      });
+    },
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < perPage ? undefined : allPages.length + 1,
+    staleTime: 1000 * 60,
+    initialPageParam: 1,
+  });
+
+  const searchResults: SearchResultItem[] = useMemo(() => {
+    if (!data?.pages) {
+      return [];
+    }
+
+    return data.pages.flatMap((page) =>
+      page.map((item) => ({
+        id: item.id,
+        title: item.title,
+        url: item.url,
+        author: {
+          id: item.user?.id,
+          name: item.user?.name,
+        },
+        likesCount: item.likes_count,
+        tags: item.tags.map((tag) => tag.name),
+        createdAt: item.created_at,
+        summary: buildSummary(item.body),
+      })),
+    );
+  }, [data]);
+
+  const handleSubmit: React.FormEventHandler<HTMLFormElement> = (event) => {
+    event.preventDefault();
+    const trimmed = keywordInput.trim();
+    if (!trimmed || !hasApiKey) {
+      return;
+    }
+
+    if (trimmed === activeKeyword) {
+      void queryClient.invalidateQueries({
+        queryKey: ["qiitaItems", trimmed, settings.apiKey, perPage],
+      });
+      return;
+    }
+
+    setActiveKeyword(trimmed);
+  };
+
+  const handleOpenSettings = () => {
+    setDraftApiKey(settings.apiKey);
+    setIsSettingsOpen(true);
+  };
+
+  const handleCloseSettings = () => {
+    setIsSettingsOpen(false);
+  };
+
+  const handleSaveSettings = () => {
+    setSettings({ apiKey: draftApiKey.trim() });
+    setIsSettingsOpen(false);
+  };
+
+  const trimmedKeyword = keywordInput.trim();
+  const hasKeyword = trimmedKeyword.length > 0;
+  const canSearch = hasKeyword && hasApiKey;
+
+  let resultsContent: ReactNode = null;
+
+  if (!hasApiKey) {
+    resultsContent = (
+      <Alert severity="info">
+        Qiita APIキーを設定すると検索できます。右上の歯車アイコンから設定してください。
+      </Alert>
+    );
+  } else if (!activeKeyword) {
+    resultsContent = (
+      <Typography color="text.secondary" variant="body2">
+        キーワードを入力して検索を開始してください。
+      </Typography>
+    );
+  } else if (isPending) {
+    resultsContent = (
+      <Box display="flex" justifyContent="center" py={4}>
+        <CircularProgress aria-label="検索中" />
+      </Box>
+    );
+  } else if (isError) {
+    resultsContent = (
+      <Alert severity="error">
+        {error?.message ?? "検索に失敗しました。時間を置いて再度お試しください。"}
+      </Alert>
+    );
+  } else {
+    resultsContent = (
+      <Stack spacing={2}>
+        <SearchResultList
+          items={searchResults}
+          emptyMessage="条件に合う記事が見つかりませんでした"
+        />
+        {hasNextPage ? (
+          <Box display="flex" justifyContent="center">
+            <Button
+              variant="outlined"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? "読み込み中…" : `次の${perPage}件を読み込む`}
+            </Button>
+          </Box>
+        ) : null}
+        {isFetching && !isFetchingNextPage ? (
+          <Box display="flex" justifyContent="center" py={2}>
+            <CircularProgress size={24} aria-label="更新中" />
+          </Box>
+        ) : null}
+      </Stack>
+    );
+  }
+
   return (
-    <Container
-      maxWidth="lg"
+    <Box
       sx={{
-        py: { xs: 4, md: 8 },
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
+        overflow: "hidden",
       }}
     >
-      <Stack spacing={{ xs: 4, md: 6 }} alignItems="center" width="100%">
+      <AppHeader
+        title="Qiita Viewer App"
+        onClickSettings={handleOpenSettings}
+        settingsTooltip="Qiita APIキーを設定"
+      />
+      <Box component="main" sx={{ flex: 1, width: "100%", overflow: "hidden" }}>
+        <Container
+          maxWidth="lg"
+          sx={{
+            py: { xs: 2, md: 4 },
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: { xs: 3, md: 4 },
+            overflow: "hidden",
+          }}
+        >
+      <Stack
+        spacing={{ xs: 3, md: 4 }}
+        alignItems="center"
+        width="100%"
+        sx={{ flex: 1, overflow: "hidden" }}
+      >
         <Stack
           component="form"
           direction={{ xs: "column", sm: "row" }}
           spacing={2}
-          alignItems={{ xs: "stretch", sm: "center" }}
+          alignItems={{ xs: "stretch", sm: "flex-start" }}
           justifyContent="center"
           sx={{ width: "100%", maxWidth: 720, mx: "auto" }}
+          onSubmit={handleSubmit}
         >
-          <SearchInput />
-          <SearchButton
-            startIcon={<SearchIcon />}
-            size="large"
-            sx={{
-              minWidth: { sm: 140 },
-              alignSelf: { xs: "stretch", sm: "center" },
-            }}
+          <SearchInput
+            value={keywordInput}
+            onChange={(event) => setKeywordInput(event.target.value)}
+            helperText={hasApiKey ? undefined : "APIキーを設定すると検索できます"}
+            sx={{ flexGrow: 1 }}
           />
+          <Tooltip
+            title={!hasApiKey ? "APIキーを設定してください" : !hasKeyword ? "キーワードを入力してください" : "検索"}
+          >
+            <Box
+              component="span"
+              sx={{
+                display: "inline-flex",
+                width: { xs: "100%", sm: "auto" },
+                alignSelf: { xs: "stretch", sm: "flex-start" },
+              }}
+            >
+              <SearchButton
+                startIcon={<SearchIcon />}
+                size="large"
+                disabled={!canSearch}
+                fullWidth
+                sx={{
+                  minWidth: { sm: 140 },
+                  alignSelf: { xs: "stretch", sm: "flex-start" },
+                  height: 56,
+                }}
+              />
+            </Box>
+          </Tooltip>
         </Stack>
 
         <Stack
@@ -85,14 +277,59 @@ export default function Home() {
             width: "100%",
             maxWidth: { xs: "100%", md: 960, lg: 1100 },
             mx: "auto",
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
           }}
         >
           <Typography variant="h6" component="h2">
             検索結果
           </Typography>
-          <SearchResultList items={dummyResults} />
+          {activeKeyword && hasApiKey && !isPending && !isError ? (
+            <Typography variant="body2" color="text.secondary">
+              「{activeKeyword}」の検索結果 {searchResults.length} 件
+              （1ページ {perPage} 件）
+            </Typography>
+          ) : null}
+          <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+            <Box
+              sx={{
+                height: "100%",
+                overflowY: "auto",
+                pr: 1,
+              }}
+            >
+              {resultsContent}
+            </Box>
+          </Box>
         </Stack>
       </Stack>
-    </Container>
+        </Container>
+      </Box>
+
+      <Dialog open={isSettingsOpen} onClose={handleCloseSettings} maxWidth="xs" fullWidth>
+        <DialogTitle>Qiita APIキー</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            APIキーを設定すると検索が可能になります。Qiita で発行した個人用アクセストークンを入力してください。
+          </Typography>
+          <TextField
+            label="APIキー"
+            fullWidth
+            value={draftApiKey}
+            onChange={(event) => setDraftApiKey(event.target.value)}
+            type="password"
+            autoComplete="off"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseSettings}>キャンセル</Button>
+          <Button onClick={handleSaveSettings} variant="contained">
+            保存
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }
