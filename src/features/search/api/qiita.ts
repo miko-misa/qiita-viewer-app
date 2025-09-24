@@ -13,6 +13,7 @@ export type QiitaItem = {
   tags: QiitaTag[];
   created_at: string;
   body: string;
+  rendered_body?: string;
   user: {
     id: string;
     name?: string;
@@ -53,13 +54,7 @@ export async function fetchQiitaItems({
   return response.data;
 }
 
-export async function fetchQiitaItem({
-  id,
-  apiKey,
-}: {
-  id: string;
-  apiKey?: string;
-}) {
+export async function fetchQiitaItem({ id, apiKey }: { id: string; apiKey?: string }) {
   const response = await qiitaClient.get<QiitaItem>(`/items/${id}`, {
     headers:
       apiKey && apiKey.length > 0
