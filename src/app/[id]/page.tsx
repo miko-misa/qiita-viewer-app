@@ -4,14 +4,17 @@ import { notFound } from "next/navigation";
 import { fetchQiitaItem } from "@/features/search/api/qiita";
 import { ArticlePageContent } from "./ArticlePageContent";
 
+type ArticlePageParams = {
+  id?: string;
+};
+
 type ArticlePageProps = {
-  params: {
-    id?: string;
-  };
+  params: Promise<ArticlePageParams>;
 };
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
-  const id = params.id?.trim();
+  const resolvedParams = await params;
+  const id = resolvedParams.id?.trim();
 
   if (!id) {
     notFound();
