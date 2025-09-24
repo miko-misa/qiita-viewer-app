@@ -2,9 +2,13 @@
 
 import "katex/dist/katex.min.css";
 
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import LaunchIcon from "@mui/icons-material/Launch";
 import { Box, Container, Link as MuiLink, Paper, Stack, Typography } from "@mui/material";
 import type { SxProps, Theme, TypographyProps } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import NextLink from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -32,9 +36,11 @@ import { toString } from "mdast-util-to-string";
 import type { Root as MdastRoot, Heading as MdastHeading } from "mdast";
 import { BlockMath, InlineMath } from "react-katex";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { ArticleHeader } from "@/components/article/ArticleHeader";
+import { PageHero } from "@/components/layout/PageHero";
 import { ArticleTableOfContents } from "@/components/article/ArticleTableOfContents";
+import { SearchTagList } from "@/components/search";
 import type { QiitaItem } from "@/features/search/api/qiita";
+import { formatAuthor } from "@/utils/format";
 
 type ArticlePageContentProps = {
   item: QiitaItem;
@@ -500,6 +506,21 @@ const createCodeRenderer = (source: string) => {
   return CodeRenderer;
 };
 
+const formatDateTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+};
+
 export function ArticlePageContent({ item }: ArticlePageContentProps) {
   const rawMarkdownSource = item.body ?? item.rendered_body ?? "";
   const markdownSource = useMemo(() => normalizeQiitaNotes(rawMarkdownSource), [rawMarkdownSource]);
@@ -948,7 +969,58 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
                 alignItems="center"
                 sx={{ width: "100%", minHeight: "100%", py: { xs: 2, md: 3 } }}
               >
-                <ArticleHeader item={item} />
+                <PageHero title={item.title} align="left" maxWidth={840} spacing={2}>
+                  <Stack spacing={1.5} sx={{ width: "100%" }}>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={{ xs: 0.5, sm: 1.5 }}
+                      alignItems={{ xs: "flex-start", sm: "center" }}
+                      flexWrap="wrap"
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        {formatAuthor(item.user)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {formatDateTime(item.created_at)}
+                      </Typography>
+                      <MuiLink
+                        component={NextLink}
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        display="inline-flex"
+                        alignItems="center"
+                        gap={0.5}
+                        variant="body2"
+                      >
+                        Qiitaで開く
+                        <LaunchIcon fontSize="inherit" />
+                      </MuiLink>
+                    </Stack>
+
+                    <Stack
+                      direction="row"
+                      spacing={2.5}
+                      alignItems="center"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <FavoriteBorderIcon fontSize="small" color="error" />
+                        <Typography variant="body2" color="text.secondary">
+                          {item.likes_count}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <BookmarkBorderIcon fontSize="small" color="primary" />
+                        <Typography variant="body2" color="text.secondary">
+                          {item.stocks_count}
+                        </Typography>
+                      </Stack>
+                    </Stack>
+                  </Stack>
+
+                  <SearchTagList tags={item.tags.map((tag) => tag.name)} />
+                </PageHero>
 
                 <Paper
                   elevation={0}

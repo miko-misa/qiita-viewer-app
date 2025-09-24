@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Divider, Link as MuiLink, Typography } from "@mui/material";
+import { Box, Link as MuiLink } from "@mui/material";
 
 export type TableOfContentsHeading = {
   level: number;
@@ -108,4 +108,3 @@ export function ArticleTableOfContents({
     </Box>
   );
 }
-
