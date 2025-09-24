@@ -2,13 +2,9 @@
 
 import "katex/dist/katex.min.css";
 
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
-import LaunchIcon from "@mui/icons-material/Launch";
-import { Box, Container, Link as MuiLink, Paper, Stack, Typography, Divider } from "@mui/material";
+import { Box, Container, Link as MuiLink, Paper, Stack, Typography } from "@mui/material";
 import type { SxProps, Theme, TypographyProps } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import NextLink from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -36,8 +32,8 @@ import { toString } from "mdast-util-to-string";
 import type { Root as MdastRoot, Heading as MdastHeading } from "mdast";
 import { BlockMath, InlineMath } from "react-katex";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { SearchTagList } from "@/components/search/SearchTagList";
-import { formatAuthor } from "@/utils/format";
+import { ArticleHeader } from "@/components/article/ArticleHeader";
+import { ArticleTableOfContents } from "@/components/article/ArticleTableOfContents";
 import type { QiitaItem } from "@/features/search/api/qiita";
 
 type ArticlePageContentProps = {
@@ -504,21 +500,6 @@ const createCodeRenderer = (source: string) => {
   return CodeRenderer;
 };
 
-const formatDateTime = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("ja-JP", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
-
 export function ArticlePageContent({ item }: ArticlePageContentProps) {
   const rawMarkdownSource = item.body ?? item.rendered_body ?? "";
   const markdownSource = useMemo(() => normalizeQiitaNotes(rawMarkdownSource), [rawMarkdownSource]);
@@ -967,62 +948,7 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
                 alignItems="center"
                 sx={{ width: "100%", minHeight: "100%", py: { xs: 2, md: 3 } }}
               >
-                <Stack spacing={2} sx={{ width: "100%", maxWidth: 840, mx: "auto" }}>
-                  <Typography variant="h4" component="h1" sx={{ wordBreak: "break-word" }}>
-                    {item.title}
-                  </Typography>
-
-                  <Stack spacing={1.5} sx={{ width: "100%" }}>
-                    <Stack
-                      direction={{ xs: "column", sm: "row" }}
-                      spacing={{ xs: 0.5, sm: 1.5 }}
-                      alignItems={{ xs: "flex-start", sm: "center" }}
-                      flexWrap="wrap"
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        {formatAuthor(item.user)}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {formatDateTime(item.created_at)}
-                      </Typography>
-                      <MuiLink
-                        component={NextLink}
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        display="inline-flex"
-                        alignItems="center"
-                        gap={0.5}
-                        variant="body2"
-                      >
-                        Qiitaで開く
-                        <LaunchIcon fontSize="inherit" />
-                      </MuiLink>
-                    </Stack>
-
-                    <Stack
-                      direction="row"
-                      spacing={2.5}
-                      alignItems="center"
-                      sx={{ color: "text.secondary" }}
-                    >
-                      <Stack direction="row" spacing={0.5} alignItems="center">
-                        <FavoriteBorderIcon fontSize="small" color="error" />
-                        <Typography variant="body2" color="text.secondary">
-                          {item.likes_count}
-                        </Typography>
-                      </Stack>
-                      <Stack direction="row" spacing={0.5} alignItems="center">
-                        <BookmarkBorderIcon fontSize="small" color="primary" />
-                        <Typography variant="body2" color="text.secondary">
-                          {item.stocks_count}
-                        </Typography>
-                      </Stack>
-                    </Stack>
-                  </Stack>
-
-                  <SearchTagList tags={item.tags.map((tag: { name: string }) => tag.name)} />
-                </Stack>
+                <ArticleHeader item={item} />
 
                 <Paper
                   elevation={0}
@@ -1060,110 +986,11 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
             </Box>
 
             {hasTableOfContents ? (
-              <Box
-                component="nav"
-                sx={{
-                  display: { xs: "none", lg: "block" },
-                  position: "sticky",
-                  top: 96,
-                  maxHeight: "calc(100vh - 140px)",
-                  overflowY: "hidden",
-                  pr: 1,
-                  alignSelf: "start",
-                }}
-              >
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                  目次
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                <Box
-                  component="ul"
-                  sx={{
-                    m: 0,
-                    p: 0,
-                    listStyle: "none",
-                    position: "relative",
-                    pl: 2,
-                    "&::before": {
-                      content: '""',
-                      position: "absolute",
-                      left: "15px",
-                      top: "12px",
-                      bottom: "12px",
-                      width: "1.5px",
-                      backgroundColor: (theme) => theme.palette.grey[400],
-                    },
-                  }}
-                >
-                  {tableOfContents.map((heading) => (
-                    <Box
-                      key={heading.slug}
-                      component="li"
-                      sx={{
-                        position: "relative",
-                        mb: 1,
-                      }}
-                    >
-                      {/* 円（レベル1は大きく、レベル2は小さく、両方とも同じ位置） */}
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          left: "0px",
-                          top: heading.level === 1 ? "7.5px" : "9.5px",
-                          width: heading.level === 1 ? "11px" : "7px",
-                          height: heading.level === 1 ? "11px" : "7px",
-                          borderRadius: "50%",
-                          backgroundColor: (theme) =>
-                            currentSlug === heading.slug ||
-                            currentSlug === `user-content-${heading.slug}`
-                              ? theme.palette.primary.main
-                              : theme.palette.grey[400],
-                          border: (theme) => `1.5px solid ${theme.palette.grey[50]}`,
-                          transform: heading.level === 1 ? "translateX(-6px)" : "translateX(-4px)",
-                          transition: "all 0.2s ease",
-                          zIndex: 1,
-                        }}
-                      />
-                      <MuiLink
-                        component="button"
-                        aria-current={
-                          currentSlug === heading.slug ||
-                          currentSlug === `user-content-${heading.slug}`
-                            ? "true"
-                            : undefined
-                        }
-                        type="button"
-                        variant="body2"
-                        color="text.secondary"
-                        underline="none"
-                        sx={{
-                          display: "block",
-                          py: 0.5,
-                          pl: 2,
-                          textAlign: "left",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          width: "100%",
-                          color: (theme) =>
-                            currentSlug === heading.slug ||
-                            currentSlug === `user-content-${heading.slug}`
-                              ? theme.palette.primary.main
-                              : theme.palette.text.secondary,
-                          fontWeight:
-                            currentSlug === heading.slug ||
-                            currentSlug === `user-content-${heading.slug}`
-                              ? 600
-                              : 400,
-                        }}
-                        onClick={() => handleTocClick(heading.slug)}
-                      >
-                        {heading.text}
-                      </MuiLink>
-                    </Box>
-                  ))}
-                </Box>
-              </Box>
+              <ArticleTableOfContents
+                headings={tableOfContents}
+                currentSlug={currentSlug}
+                onSelect={handleTocClick}
+              />
             ) : null}
           </Box>
         </Container>
