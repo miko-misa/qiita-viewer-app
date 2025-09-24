@@ -38,13 +38,13 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## 主な依存関係
 
-| 区分 | パッケージ | 役割 |
-| ---- | ---------- | ---- |
-| UI/スタイル | `@mui/material`, `@mui/icons-material`, `@emotion/*` | マテリアルデザインをベースにしたレイアウトとアイコン提供 |
-| 状態管理 | `recoil`, `recoil-persist`, `@tanstack/react-query` | API キーなどのグローバル状態、検索結果のキャッシュを管理 |
+| 区分          | パッケージ                                                                                                                                             | 役割                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| UI/スタイル   | `@mui/material`, `@mui/icons-material`, `@emotion/*`                                                                                                   | マテリアルデザインをベースにしたレイアウトとアイコン提供                   |
+| 状態管理      | `recoil`, `recoil-persist`, `@tanstack/react-query`                                                                                                    | API キーなどのグローバル状態、検索結果のキャッシュを管理                   |
 | Markdown/表示 | `react-markdown`, `remark-gfm`, `remark-directive`, `remark-math`, `rehype-raw`, `rehype-sanitize`, `react-syntax-highlighter`, `react-katex`, `katex` | Qiita 記事の Markdown 表示、Qiita ノート、コードハイライト、TeX 表示を実現 |
-| ネットワーク | `axios` | Qiita API との通信 |
-| 開発支援 | `storybook`, `@storybook/*`, `eslint`, `prettier`, `vitest`, `playwright` など | UI ドキュメント、Lint、フォーマッタ、テスト環境 |
+| ネットワーク  | `axios`                                                                                                                                                | Qiita API との通信                                                         |
+| 開発支援      | `storybook`, `@storybook/*`, `eslint`, `prettier`, `vitest`, `playwright` など                                                                         | UI ドキュメント、Lint、フォーマッタ、テスト環境                            |
 
 ## 複数人による共同作業の指針
 
