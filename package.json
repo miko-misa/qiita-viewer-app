@@ -33,13 +33,17 @@
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "remark-directive": "^3.0.0",
+    "remark-math": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
+    "react-katex": "^3.1.0",
+    "katex": "^0.16.11",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.1",
+    "@types/react-katex": "^3.0.1",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@eslint/eslintrc": "^3",

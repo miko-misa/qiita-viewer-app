@@ -1,5 +1,7 @@
 "use client";
 
+import "katex/dist/katex.min.css";
+
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import LaunchIcon from "@mui/icons-material/Launch";
@@ -27,10 +29,12 @@ import React, {
 } from "react";
 import { unified, type Plugin } from "unified";
 import remarkDirective from "remark-directive";
+import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import { visit } from "unist-util-visit";
 import { toString } from "mdast-util-to-string";
 import type { Root as MdastRoot, Heading as MdastHeading } from "mdast";
+import { BlockMath, InlineMath } from "react-katex";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { SearchTagList } from "@/components/search/SearchTagList";
 import { formatAuthor } from "@/utils/format";
@@ -297,135 +301,207 @@ const getNodeText = (children: ReactNode): string => {
   return "";
 };
 
-const CodeBlock = ({ node, inline, className, children, ...props }: MarkdownCodeProps) => {
-  void node;
-  const languageMatch = /language-([\w+-]+)/.exec(className ?? "");
-  const language = languageMatch?.[1];
+const isSurroundedByLineBreaks = (
+  source: string,
+  position: { start?: { offset?: number }; end?: { offset?: number } } | undefined
+) => {
+  const startOffset = position?.start?.offset;
+  const endOffset = position?.end?.offset;
 
-  // タイトルの抽出: language-javascript:example.js のような形式から example.js を取得
-  const titleMatch = /language-[\w+-]+:(.+)/.exec(className ?? "");
-  const title = titleMatch?.[1];
-
-  // インラインコードの判定: inlineプロパティがtrueの場合、または改行を含まない短いコード
-  const code = Array.isArray(children)
-    ? children.map((child) => String(child)).join("")
-    : String(children ?? "");
-  const isInline = inline === true || (inline !== false && !code.includes("\n") && !language);
-
-  if (!isInline) {
-    return (
-      <Box
-        sx={(theme) => ({
-          backgroundColor: theme.palette.grey[900],
-          borderRadius: 1.5,
-          overflow: "hidden",
-          my: 2.5,
-          boxShadow: theme.shadows[1],
-        })}
-      >
-        {title && (
-          <Box
-            sx={(theme) => ({
-              backgroundColor: theme.palette.grey[800],
-              color: theme.palette.grey[300],
-              px: 2.5,
-              py: 1,
-              borderBottom: `1px solid ${theme.palette.grey[700]}`,
-              fontSize: "0.875rem",
-              fontFamily: 'var(--font-geist-mono, "Roboto Mono", monospace)',
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-            })}
-          >
-            <Box
-              component="span"
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                backgroundColor: "error.main",
-                flexShrink: 0,
-              }}
-            />
-            <Box
-              component="span"
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                backgroundColor: "warning.main",
-                flexShrink: 0,
-              }}
-            />
-            <Box
-              component="span"
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                backgroundColor: "success.main",
-                flexShrink: 0,
-                mr: 1,
-              }}
-            />
-            {title}
-          </Box>
-        )}
-        <SyntaxHighlighter
-          language={language}
-          style={oneDark}
-          PreTag="div"
-          customStyle={{
-            margin: 0,
-            padding: "18px 20px",
-            background: "transparent",
-            fontSize: 14,
-            lineHeight: 1.7,
-          }}
-          codeTagProps={{
-            style: {
-              fontFamily: 'var(--font-geist-mono, "Roboto Mono", monospace)',
-            },
-            ...props,
-          }}
-          showLineNumbers
-        >
-          {code.replace(/\n$/, "")}
-        </SyntaxHighlighter>
-      </Box>
-    );
+  if (typeof startOffset !== "number" || typeof endOffset !== "number") {
+    return false;
   }
 
-  return (
-    <Box
-      component="code"
-      sx={(theme) => {
-        const isLight = theme.palette.mode === "light";
-        const backgroundColor = alpha(
-          isLight ? theme.palette.grey[500] : theme.palette.grey[300],
-          isLight ? 0.16 : 0.24
-        );
-        const textColor = isLight ? theme.palette.text.primary : theme.palette.grey[100];
+  const beforeIndex = (() => {
+    let idx = startOffset - 1;
+    while (idx >= 0 && (source[idx] === " " || source[idx] === "\t")) {
+      idx -= 1;
+    }
+    return idx;
+  })();
 
-        return {
-          display: "inline",
-          fontFamily: 'var(--font-geist-mono, "Roboto Mono", monospace)',
-          backgroundColor,
-          color: textColor,
-          px: 0.5,
-          py: "1px",
-          borderRadius: 0.75,
-          fontSize: "0.95em",
-          lineHeight: 1.4,
-          whiteSpace: "pre-wrap",
-        };
-      }}
-      {...props}
-    >
-      {code}
-    </Box>
-  );
+  const afterIndex = (() => {
+    let idx = endOffset;
+    while (idx < source.length && (source[idx] === " " || source[idx] === "\t")) {
+      idx += 1;
+    }
+    return idx;
+  })();
+
+  const leadingBoundary =
+    beforeIndex < 0 || source[beforeIndex] === "\n" || source[beforeIndex] === "\r";
+  const trailingBoundary =
+    afterIndex >= source.length || source[afterIndex] === "\n" || source[afterIndex] === "\r";
+
+  return leadingBoundary && trailingBoundary;
+};
+
+const createCodeRenderer = (source: string) => {
+  const CodeRenderer = ({ node, inline, className, children, ...props }: MarkdownCodeProps) => {
+    const code = Array.isArray(children)
+      ? children.map((child) => String(child)).join("")
+      : String(children ?? "");
+
+    const mathClassName = className ?? "";
+    const isMath =
+      mathClassName.includes("language-math") ||
+      mathClassName.includes("math-inline") ||
+      mathClassName.includes("math-display");
+
+    if (isMath) {
+      const mathContent = code.trim();
+      const position = (
+        node as { position?: { start?: { offset?: number }; end?: { offset?: number } } }
+      )?.position;
+      const hasAdjacentText = !isSurroundedByLineBreaks(source, position);
+      const isExplicitInline =
+        mathClassName.includes("math-inline") && !mathClassName.includes("math-display");
+      const isInlineMath = hasAdjacentText || isExplicitInline;
+
+      if (isInlineMath) {
+        return (
+          <Box component="span" sx={{ mx: 0.3, display: "inline-flex" }}>
+            <InlineMath math={mathContent} errorColor="#cc0000" />
+          </Box>
+        );
+      }
+
+      return (
+        <Box sx={{ my: 3, overflowX: "auto" }}>
+          <BlockMath math={mathContent} errorColor="#cc0000" />
+        </Box>
+      );
+    }
+
+    const languageMatch = /language-([\w+-]+)/.exec(className ?? "");
+    const language = languageMatch?.[1];
+
+    // タイトルの抽出: language-javascript:example.js のような形式から example.js を取得
+    const titleMatch = /language-[\w+-]+:(.+)/.exec(className ?? "");
+    const title = titleMatch?.[1];
+
+    // インラインコードの判定: inlineプロパティがtrueの場合、または改行を含まない短いコード
+    const isInline = inline === true || (inline !== false && !code.includes("\n") && !language);
+
+    if (!isInline) {
+      return (
+        <Box
+          sx={(theme) => ({
+            backgroundColor: theme.palette.grey[900],
+            borderRadius: 1.5,
+            overflow: "hidden",
+            my: 2.5,
+            boxShadow: theme.shadows[1],
+          })}
+        >
+          {title && (
+            <Box
+              sx={(theme) => ({
+                backgroundColor: theme.palette.grey[800],
+                color: theme.palette.grey[300],
+                px: 2.5,
+                py: 1,
+                borderBottom: `1px solid ${theme.palette.grey[700]}`,
+                fontSize: "0.875rem",
+                fontFamily: 'var(--font-geist-mono, "Roboto Mono", monospace)',
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              })}
+            >
+              <Box
+                component="span"
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "error.main",
+                  flexShrink: 0,
+                }}
+              />
+              <Box
+                component="span"
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "warning.main",
+                  flexShrink: 0,
+                }}
+              />
+              <Box
+                component="span"
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "success.main",
+                  flexShrink: 0,
+                  mr: 1,
+                }}
+              />
+              {title}
+            </Box>
+          )}
+          <SyntaxHighlighter
+            language={language}
+            style={oneDark}
+            PreTag="div"
+            customStyle={{
+              margin: 0,
+              padding: "18px 20px",
+              background: "transparent",
+              fontSize: 14,
+              lineHeight: 1.7,
+            }}
+            codeTagProps={{
+              style: {
+                fontFamily: 'var(--font-geist-mono, "Roboto Mono", monospace)',
+              },
+              ...props,
+            }}
+            showLineNumbers
+          >
+            {code.replace(/\n$/, "")}
+          </SyntaxHighlighter>
+        </Box>
+      );
+    }
+
+    return (
+      <Box
+        component="code"
+        sx={(theme) => {
+          const isLight = theme.palette.mode === "light";
+          const backgroundColor = alpha(
+            isLight ? theme.palette.grey[500] : theme.palette.grey[300],
+            isLight ? 0.16 : 0.24
+          );
+          const textColor = isLight ? theme.palette.text.primary : theme.palette.grey[100];
+
+          return {
+            display: "inline",
+            fontFamily: 'var(--font-geist-mono, "Roboto Mono", monospace)',
+            backgroundColor,
+            color: textColor,
+            px: 0.5,
+            py: "1px",
+            borderRadius: 0.75,
+            fontSize: "0.95em",
+            lineHeight: 1.4,
+            whiteSpace: "pre-wrap",
+          };
+        }}
+        {...props}
+      >
+        {code}
+      </Box>
+    );
+  };
+
+  CodeRenderer.displayName = "MarkdownCodeRenderer";
+
+  return CodeRenderer;
 };
 
 const formatDateTime = (value: string) => {
@@ -451,10 +527,11 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
     () => headings.filter((heading) => heading.level === 1 || heading.level === 2),
     [headings]
   );
-  const remarkHeadingPlugins = useMemo(
-    () => [remarkGfm, remarkDirective, remarkNotePlugin, createHeadingSlugPlugin()],
+  const remarkPlugins = useMemo(
+    () => [remarkMath, remarkGfm, remarkDirective, remarkNotePlugin, createHeadingSlugPlugin()],
     []
   );
+  const codeRenderer = useMemo(() => createCodeRenderer(markdownSource), [markdownSource]);
   const activeHeading = useRef<string | null>(null);
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -601,6 +678,7 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
   }, [markdownSource, tableOfContents.length, recalcPositions, updateActiveByScroll]);
 
   const markdownComponents: Components = {
+    code: codeRenderer,
     div: ({ className, children, ...props }) => {
       const cn = className ?? "";
       const isNote = typeof cn === "string" && cn.includes("qiita-note");
@@ -786,7 +864,6 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
         </Box>
       );
     },
-    code: CodeBlock,
   } satisfies Components;
 
   const hasTableOfContents = tableOfContents.length > 0;
@@ -967,7 +1044,7 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
                 >
                   {markdownSource ? (
                     <ReactMarkdown
-                      remarkPlugins={remarkHeadingPlugins}
+                      remarkPlugins={remarkPlugins}
                       rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownSchema]]}
                       components={markdownComponents}
                     >
