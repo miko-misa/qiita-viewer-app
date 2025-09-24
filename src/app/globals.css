@@ -28,11 +28,16 @@ body {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+  scrollbar-width: none;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-color-scheme: dark) {

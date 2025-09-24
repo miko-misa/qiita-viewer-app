@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import SearchIcon from "@mui/icons-material/Search";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useRecoilState } from "recoil";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   SearchButton,
@@ -30,6 +31,7 @@ import {
 } from "@/components/search";
 import { fetchQiitaItems, qiitaApiConstants, type QiitaItem } from "@/features/search/api/qiita";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { PageHero } from "@/components/layout/PageHero";
 import { SearchDetailDialog } from "@/components/search/SearchDetailDialog";
 import {
   defaultSearchDetailSettings,
@@ -51,8 +53,12 @@ function buildSummary(body: string | undefined) {
 }
 
 export function SearchPageClient() {
-  const [keywordInput, setKeywordInput] = useState("");
-  const [activeKeyword, setActiveKeyword] = useState("");
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const initialQuery = searchParams.get("q") ?? "";
+  const [keywordInput, setKeywordInput] = useState(initialQuery);
+  const [activeKeyword, setActiveKeyword] = useState(initialQuery);
   const [settings, setSettings] = useRecoilState(qiitaSettingsState);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [draftApiKey, setDraftApiKey] = useState(settings.apiKey);
@@ -64,6 +70,12 @@ export function SearchPageClient() {
 
   const hasApiKey = settings.apiKey.trim().length > 0;
   const perPage = qiitaApiConstants.DEFAULT_PER_PAGE;
+
+  useEffect(() => {
+    const queryParam = searchParams.get("q") ?? "";
+    setKeywordInput((prev) => (prev === queryParam ? prev : queryParam));
+    setActiveKeyword((prev) => (prev === queryParam ? prev : queryParam));
+  }, [searchParams]);
 
   const {
     data,
@@ -131,6 +143,9 @@ export function SearchPageClient() {
     }
 
     setActiveKeyword(trimmed);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("q", trimmed);
+    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
   };
 
   const handleOpenSettings = () => {
@@ -183,6 +198,10 @@ export function SearchPageClient() {
         <SearchResultList
           items={searchResults}
           emptyMessage="条件に合う記事が見つかりませんでした"
+          onSelect={(item) => {
+            const articlePath = `/${encodeURIComponent(item.id)}`;
+            window.open(articlePath, "_blank", "noopener,noreferrer");
+          }}
         />
         {hasNextPage ? (
           <Box display="flex" justifyContent="center">
@@ -240,67 +259,69 @@ export function SearchPageClient() {
           alignItems="center"
           sx={{ width: "100%", flex: 1, minHeight: 0 }}
         >
-          <Stack
-            component="form"
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            alignItems={{ xs: "stretch", sm: "flex-start" }}
-            justifyContent="center"
-            sx={{ width: "100%", maxWidth: 720, mx: "auto" }}
-            onSubmit={handleSubmit}
-          >
-            <SearchInput
-              value={keywordInput}
-              onChange={(event) => setKeywordInput(event.target.value)}
-              helperText={hasApiKey ? undefined : "APIキーを設定すると検索できます"}
-              sx={{ flexGrow: 1, m: 0.5 }}
-            />
-            <Button
-              type="button"
-              variant="outlined"
-              startIcon={<TuneIcon />}
-              onClick={() => setIsDetailDialogOpen(true)}
-              sx={{
-                alignSelf: { xs: "stretch", sm: "flex-start" },
-                whiteSpace: "nowrap",
-                minWidth: { sm: 140 },
-                px: { sm: 3 },
-                height: 56,
-              }}
+          <PageHero title="Qiita Viewer App" align="center" maxWidth={720} spacing={3}>
+            <Stack
+              component="form"
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              alignItems={{ xs: "stretch", sm: "flex-start" }}
+              justifyContent="center"
+              sx={{ width: "100%" }}
+              onSubmit={handleSubmit}
             >
-              詳細検索
-            </Button>
-            <Tooltip
-              title={
-                !hasApiKey
-                  ? "APIキーを設定してください"
-                  : !hasKeyword
-                    ? "キーワードを入力してください"
-                    : "検索"
-              }
-            >
-              <Box
-                component="span"
+              <SearchInput
+                value={keywordInput}
+                onChange={(event) => setKeywordInput(event.target.value)}
+                helperText={hasApiKey ? undefined : "APIキーを設定すると検索できます"}
+                sx={{ flexGrow: 1, m: 0.5 }}
+              />
+              <Button
+                type="button"
+                variant="outlined"
+                startIcon={<TuneIcon />}
+                onClick={() => setIsDetailDialogOpen(true)}
                 sx={{
-                  display: "inline-flex",
-                  width: { xs: "100%", sm: "auto" },
                   alignSelf: { xs: "stretch", sm: "flex-start" },
+                  whiteSpace: "nowrap",
+                  minWidth: { sm: 140 },
+                  px: { sm: 3 },
+                  height: 56,
                 }}
               >
-                <SearchButton
-                  startIcon={<SearchIcon />}
-                  size="large"
-                  disabled={!canSearch}
-                  fullWidth
+                詳細検索
+              </Button>
+              <Tooltip
+                title={
+                  !hasApiKey
+                    ? "APIキーを設定してください"
+                    : !hasKeyword
+                      ? "キーワードを入力してください"
+                      : "検索"
+                }
+              >
+                <Box
+                  component="span"
                   sx={{
-                    minWidth: { sm: 140 },
+                    display: "inline-flex",
+                    width: { xs: "100%", sm: "auto" },
                     alignSelf: { xs: "stretch", sm: "flex-start" },
-                    height: 56,
                   }}
-                />
-              </Box>
-            </Tooltip>
-          </Stack>
+                >
+                  <SearchButton
+                    startIcon={<SearchIcon />}
+                    size="large"
+                    disabled={!canSearch}
+                    fullWidth
+                    sx={{
+                      minWidth: { sm: 140 },
+                      alignSelf: { xs: "stretch", sm: "flex-start" },
+                      height: 56,
+                    }}
+                  />
+                </Box>
+              </Tooltip>
+            </Stack>
+          </PageHero>
 
           <Stack
             spacing={2}
