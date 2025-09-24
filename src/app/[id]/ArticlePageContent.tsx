@@ -5,6 +5,7 @@ import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import LaunchIcon from "@mui/icons-material/Launch";
 import { Box, Container, Link as MuiLink, Paper, Stack, Typography, Divider } from "@mui/material";
 import type { SxProps, Theme, TypographyProps } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import NextLink from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -25,6 +26,7 @@ import React, {
   type ReactNode,
 } from "react";
 import { unified, type Plugin } from "unified";
+import remarkDirective from "remark-directive";
 import remarkParse from "remark-parse";
 import { visit } from "unist-util-visit";
 import { toString } from "mdast-util-to-string";
@@ -36,6 +38,68 @@ import type { QiitaItem } from "@/features/search/api/qiita";
 
 type ArticlePageContentProps = {
   item: QiitaItem;
+};
+
+const NOTE_DIRECTIVE_KEYWORDS = [
+  "info",
+  "warn",
+  "warning",
+  "alert",
+  "danger",
+  "error",
+  "success",
+] as const;
+type NoteDirectiveKeyword = (typeof NOTE_DIRECTIVE_KEYWORDS)[number];
+
+const resolveNoteDirectiveKeyword = (value?: string): NoteDirectiveKeyword | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return NOTE_DIRECTIVE_KEYWORDS.includes(normalized as NoteDirectiveKeyword)
+    ? (normalized as NoteDirectiveKeyword)
+    : undefined;
+};
+
+const normalizeQiitaNotes = (markdown: string): string => {
+  if (!markdown) {
+    return markdown;
+  }
+
+  return markdown.replace(/^(\s*:::note)([^\r\n]*)$/gim, (_match, prefix, suffix) => {
+    const rest = suffix ?? "";
+    const trimmed = rest.trim();
+
+    if (trimmed.startsWith("{")) {
+      return `${prefix}${suffix}`;
+    }
+
+    let variant: NoteDirectiveKeyword = "info";
+    let content = "";
+
+    if (trimmed.length > 0) {
+      const tokens = trimmed.split(/\s+/);
+      const [firstToken, ...otherTokens] = tokens;
+      const candidate = resolveNoteDirectiveKeyword(firstToken);
+
+      if (candidate) {
+        variant = candidate;
+        content = otherTokens.join(" ");
+      } else {
+        content = trimmed;
+      }
+    }
+
+    const indent = prefix.match(/^\s*/)?.[0] ?? "";
+    const normalizedLine = `${prefix}{.${variant}}`;
+
+    if (content) {
+      return `${normalizedLine}\n${indent}${content}`;
+    }
+
+    return normalizedLine;
+  });
 };
 
 const slugify = (text: string) => {
@@ -129,6 +193,7 @@ const markdownSchema = {
   ...defaultSchema,
   attributes: {
     ...defaultSchema.attributes,
+    div: [...(defaultSchema.attributes?.div ?? []), "className", "data-title"],
     h1: [...(defaultSchema.attributes?.h1 ?? []), "id"],
     h2: [...(defaultSchema.attributes?.h2 ?? []), "id"],
     h3: [...(defaultSchema.attributes?.h3 ?? []), "id"],
@@ -138,6 +203,74 @@ const markdownSchema = {
     code: [...(defaultSchema.attributes?.code ?? []), ["className", /^language-/]],
     pre: [...(defaultSchema.attributes?.pre ?? []), ["className", /^language-/]],
   },
+};
+
+// Qiita の :::note ディレクティブを div.qiita-note に変換
+type MinimalDirective = {
+  type: string;
+  name?: string;
+  attributes?: Record<string, unknown>;
+  data?: { hName?: string; hProperties?: Record<string, unknown> };
+  label?: string;
+};
+
+const remarkNotePlugin: Plugin<[], MdastRoot> = () => (tree) => {
+  visit(tree as unknown as MdastRoot, "containerDirective", (n) => {
+    const node = n as unknown as MinimalDirective;
+    if (node.name !== "note") return;
+    const attrs = node.attributes ?? {};
+    const cls = String(
+      (attrs as Record<string, unknown>).class ?? (attrs as Record<string, unknown>).className ?? ""
+    );
+    let rawType: string | undefined = typeof attrs.type === "string" ? attrs.type : undefined;
+    if (!rawType) {
+      const m = /(info|warning|warn|alert|danger|error|success)/i.exec(cls);
+      if (m) rawType = m[1].toLowerCase();
+    }
+    // パターン: 先頭行が "<type> <本文>" の場合に type を推定し、本文から type トークンを取り除く
+    if (!rawType) {
+      type UnknownNode = { type?: string; children?: unknown[]; value?: unknown };
+      const parentChildren = (node as unknown as { children?: unknown[] }).children ?? [];
+      const first = Array.isArray(parentChildren) ? (parentChildren[0] as UnknownNode) : undefined;
+      if (first?.type === "paragraph") {
+        const firstChild = Array.isArray(first.children)
+          ? (first.children[0] as UnknownNode)
+          : undefined;
+        if (firstChild?.type === "text" && typeof firstChild.value === "string") {
+          const m = /^(info|warning|warn|alert|danger|error|success)\s+(.*)$/i.exec(
+            firstChild.value.trim()
+          );
+          if (m) {
+            rawType = m[1].toLowerCase();
+            const rest = m[2];
+            firstChild.value = rest; // 本文から type トークンを削除
+          }
+        }
+      }
+    }
+    rawType ||= "info";
+    const typeMap: Record<string, "info" | "warning" | "alert" | "success"> = {
+      info: "info",
+      warn: "warning",
+      warning: "warning",
+      danger: "alert",
+      error: "alert",
+      alert: "alert",
+      success: "success",
+    };
+    const type = typeMap[rawType] ?? "info";
+    const title =
+      (typeof (attrs as Record<string, unknown>).title === "string" &&
+        (attrs as Record<string, string>).title) ||
+      node.label ||
+      undefined;
+    node.data ||= {};
+    node.data.hName = "div";
+    node.data.hProperties = {
+      className: ["qiita-note", `qiita-note--${type}`],
+      "data-title": title,
+    } as Record<string, unknown>;
+  });
 };
 
 type MarkdownCodeProps = ComponentPropsWithoutRef<"code"> & {
@@ -267,18 +400,27 @@ const CodeBlock = ({ node, inline, className, children, ...props }: MarkdownCode
   return (
     <Box
       component="code"
-      sx={(theme) => ({
-        display: "inline",
-        fontFamily: 'var(--font-geist-mono, "Roboto Mono", monospace)',
-        backgroundColor: theme.palette.grey[200],
-        color: theme.palette.text.primary,
-        px: 0.5,
-        py: "2px",
-        borderRadius: 0.5,
-        fontSize: "0.95em",
-        lineHeight: 1.4,
-        whiteSpace: "pre-wrap",
-      })}
+      sx={(theme) => {
+        const isLight = theme.palette.mode === "light";
+        const backgroundColor = alpha(
+          isLight ? theme.palette.grey[500] : theme.palette.grey[300],
+          isLight ? 0.16 : 0.24
+        );
+        const textColor = isLight ? theme.palette.text.primary : theme.palette.grey[100];
+
+        return {
+          display: "inline",
+          fontFamily: 'var(--font-geist-mono, "Roboto Mono", monospace)',
+          backgroundColor,
+          color: textColor,
+          px: 0.5,
+          py: "1px",
+          borderRadius: 0.75,
+          fontSize: "0.95em",
+          lineHeight: 1.4,
+          whiteSpace: "pre-wrap",
+        };
+      }}
       {...props}
     >
       {code}
@@ -302,13 +444,17 @@ const formatDateTime = (value: string) => {
 };
 
 export function ArticlePageContent({ item }: ArticlePageContentProps) {
-  const markdownSource = item.body ?? item.rendered_body ?? "";
+  const rawMarkdownSource = item.body ?? item.rendered_body ?? "";
+  const markdownSource = useMemo(() => normalizeQiitaNotes(rawMarkdownSource), [rawMarkdownSource]);
   const headings = useMemo(() => extractHeadings(markdownSource), [markdownSource]);
   const tableOfContents = useMemo(
     () => headings.filter((heading) => heading.level === 1 || heading.level === 2),
     [headings]
   );
-  const remarkHeadingPlugins = useMemo(() => [remarkGfm, createHeadingSlugPlugin()], []);
+  const remarkHeadingPlugins = useMemo(
+    () => [remarkGfm, remarkDirective, remarkNotePlugin, createHeadingSlugPlugin()],
+    []
+  );
   const activeHeading = useRef<string | null>(null);
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -395,7 +541,9 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
     if (!container) return;
 
     const headerOffset = window.innerWidth >= 900 ? 96 : 72;
-    const activationY = container.scrollTop + headerOffset + 1;
+    const viewportHeight = container.clientHeight;
+    const extraOffset = Math.max(viewportHeight * 0.18, 96);
+    const activationY = container.scrollTop + headerOffset + extraOffset;
 
     let next: string | null = positionsRef.current[0]?.slug ?? null;
     for (const pos of positionsRef.current) {
@@ -453,6 +601,74 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
   }, [markdownSource, tableOfContents.length, recalcPositions, updateActiveByScroll]);
 
   const markdownComponents: Components = {
+    div: ({ className, children, ...props }) => {
+      const cn = className ?? "";
+      const isNote = typeof cn === "string" && cn.includes("qiita-note");
+      if (!isNote) {
+        return (
+          <Box component="div" {...props}>
+            {children as ReactNode}
+          </Box>
+        );
+      }
+
+      const m = cn.match(/qiita-note--([a-z]+)/);
+      const noteType = (m?.[1] ?? "info") as "info" | "warning" | "alert" | "success" | string;
+      const dataTitle = (props as Record<string, unknown>)["data-title"] as string | undefined;
+
+      const resolvePalette = (theme: Theme) => {
+        switch (noteType) {
+          case "warning":
+          case "warn":
+            return theme.palette.warning;
+          case "alert":
+          case "danger":
+          case "error":
+            return theme.palette.error;
+          case "success":
+            return theme.palette.success;
+          case "info":
+          default:
+            return theme.palette.info;
+        }
+      };
+
+      return (
+        <Box
+          component="div"
+          sx={(theme) => {
+            const palette = resolvePalette(theme);
+            const backgroundColor = alpha(
+              palette.main,
+              theme.palette.mode === "light" ? 0.08 : 0.18
+            );
+            const borderColor = alpha(palette.main, theme.palette.mode === "light" ? 0.28 : 0.45);
+            const accentColor = alpha(palette.main, theme.palette.mode === "light" ? 0.6 : 0.75);
+            return {
+              backgroundColor,
+              border: `1px solid ${borderColor}`,
+              borderLeftColor: accentColor,
+              borderLeftWidth: 4,
+              borderLeftStyle: "solid",
+              color: theme.palette.text.primary,
+              p: 2,
+              pl: 2.5,
+              my: 2,
+              borderRadius: 1.5,
+            };
+          }}
+        >
+          {dataTitle ? (
+            <Typography variant="subtitle2" component="div" sx={{ fontWeight: 700, mb: 0.5 }}>
+              {dataTitle}
+            </Typography>
+          ) : null}
+          <Box sx={{ "&:first-of-type": { mt: 0 }, "&:last-of-type": { mb: 0 } }}>
+            {children as ReactNode}
+          </Box>
+        </Box>
+      );
+    },
     h1: buildHeading("h4", "h2", { mt: 4, mb: 2, fontWeight: 700 }),
     h2: buildHeading("h5", "h3", { mt: 4, mb: 1.5, fontWeight: 700 }),
     h3: buildHeading("h6", "h4", { mt: 3, mb: 1.25, fontWeight: 600 }),
