@@ -3,6 +3,7 @@
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import { Box, List, ListItem, ListItemButton, Stack, Typography } from "@mui/material";
+import Link from "next/link";
 
 import { SearchTagList } from "./SearchTagList";
 import { formatAuthor } from "@/utils/format";
@@ -58,14 +59,10 @@ export function SearchResultList({
   return (
     <List disablePadding>
       {items.map((item) => {
+        const detailHref = `/${encodeURIComponent(item.id)}`;
         const actionProps = onSelect
-          ? { component: "div" as const, onClick: () => onSelect(item) }
-          : {
-              component: "a" as const,
-              href: item.url,
-              target: "_blank",
-              rel: "noopener noreferrer",
-            };
+          ? { onClick: () => onSelect(item) }
+          : ({ component: Link, href: detailHref } as const);
 
         return (
           <ListItem key={item.id} disableGutters disablePadding>
