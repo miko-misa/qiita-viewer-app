@@ -9,6 +9,7 @@ import { Box, Container, Link as MuiLink, Paper, Stack, Typography } from "@mui/
 import type { SxProps, Theme, TypographyProps } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import NextLink from "next/link";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -522,6 +523,7 @@ const formatDateTime = (value: string) => {
 };
 
 export function ArticlePageContent({ item }: ArticlePageContentProps) {
+  const router = useRouter();
   const rawMarkdownSource = item.body ?? item.rendered_body ?? "";
   const markdownSource = useMemo(() => normalizeQiitaNotes(rawMarkdownSource), [rawMarkdownSource]);
   const headings = useMemo(() => extractHeadings(markdownSource), [markdownSource]);
@@ -908,6 +910,15 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
     [scrollToSlug]
   );
 
+  const handleBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/");
+  }, [router]);
+
   return (
     <Box
       display="flex"
@@ -918,7 +929,12 @@ export function ArticlePageContent({ item }: ArticlePageContentProps) {
         overflow: "hidden",
       }}
     >
-      <AppHeader title="Qiita Viewer App" position="fixed" />
+      <AppHeader
+        title="Qiita Viewer App"
+        position="fixed"
+        onClickBack={handleBack}
+        backTooltip="前のページに戻る"
+      />
       <Box
         component="main"
         sx={{

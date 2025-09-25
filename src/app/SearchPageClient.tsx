@@ -198,10 +198,6 @@ export function SearchPageClient() {
         <SearchResultList
           items={searchResults}
           emptyMessage="条件に合う記事が見つかりませんでした"
-          onSelect={(item) => {
-            const articlePath = `/${encodeURIComponent(item.id)}`;
-            window.open(articlePath, "_blank", "noopener,noreferrer");
-          }}
         />
         {hasNextPage ? (
           <Box display="flex" justifyContent="center">
